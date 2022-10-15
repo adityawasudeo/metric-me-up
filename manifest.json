@@ -1,0 +1,15 @@
+{
+    "name": "Metric Me Up!",
+    "description": "Hover over an Imperial unit on any web page to get a metric conversion",
+    "version": "1.0",
+    "manifest_version": 3,
+    "content_scripts": 
+    [
+        {
+        "matches": ["*://*/*"],
+        "js": ["convert.js"],
+        "css": [ "tooltip.css" ],
+        "run_at": "document_idle"
+        }
+    ]
+}
