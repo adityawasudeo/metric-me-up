@@ -12,9 +12,12 @@ const toConvert = [
   { regex: new RegExp('(' + intOrFloat + ' ?(pound|lb)s?)' + unitSuffix, 'ig'), unit: 'kg', multiplier: 0.453592 },
   { regex: new RegExp('(' + intOrFloat + ' ?gallons?)' + unitSuffix, 'ig'),     unit: 'L',  multiplier: 3.78541  },
   { regex: new RegExp('(' + intOrFloat + ' ?stones?)' + unitSuffix, 'ig'),      unit: 'kg', multiplier: 6.35029  },
-  { regex: new RegExp('(' + intOrFloat + ' ?inch(es)?)' + unitSuffix, 'ig'), unit: 'cm', multiplier: 2.54     },
-  //{ regex: new RegExp('(' + intOrFloat + ' ?°F(ahrenheit?)?)' + unitSuffix, 'ig'), unit: '°C', multiplier: 2.54     },
+  { regex: new RegExp('(' + intOrFloat + ' ?in(ch|ches)?)' + unitSuffix, 'ig'), unit: 'cm', multiplier: 2.54     },
+  { regex: new RegExp('(' + intOrFloat + ' ?fl oz?)' + unitSuffix, 'ig'),       unit: 'ml', multiplier: 29.594   },
+  { regex: new RegExp('(' + intOrFloat + ' ?quart?)' + unitSuffix, 'ig'),       unit: 'L',  multiplier: 0.946    },
 ];
+
+const tempExp = new RegExp('(' + intOrFloat + ' ?°F?)' + unitSuffix, 'ig')
 
 function convert(originalAmount, multiplier) {
     let convertedAmount = originalAmount * multiplier;
@@ -40,7 +43,7 @@ function convertForOutput(originalAmount, unitIndex) {
     return convertedString;
 }
   
-function convertSimpleUnits(text) {
+function convertUnits(text) {
     let modified = false;
     let mtext = text;
     const len = toConvert.length;
@@ -52,28 +55,44 @@ function convertSimpleUnits(text) {
                 const originalAmount = matches[2];
                 const convertedString = convertForOutput(originalAmount, i);
                 const rText = '<div class=tooltip>'+fullMatch+' <span class="tooltiptext">'+convertedString+'</span> </div>';
-                console.log(rText);
-                console.log(matches.index);
-                //text = text.replace(fullMatch,rText);
                 mtext = text.slice(0,matches.index)+rText+text.slice(matches.index+fullMatch.length);
                 modified = true;
             }
         }    
     }
-    if(modified==true) return mtext;
-    return null;
+    return {modified:modified, text:mtext};
 }
+
+function convertTemperature(text) {
+    let modified = false;
+    let mtext = text;
+    let matches;
+    while ((matches = tempExp.exec(text)) !== null) { 
+        const fullMatch  = matches[1];
+        const originalAmount = matches[2];
+        console.log(fullMatch + " "+ originalAmount);
+        let convertedAmount = (originalAmount - 32) * (5/9);
+        convertedAmount = Math.round(convertedAmount * 100) / 100;
+        const convertedString = convertedAmount + '°C';
+        const rText = '<div class=tooltip>'+fullMatch+' <span class="tooltiptext">'+convertedString+'</span> </div>';
+        mtext = text.slice(0,matches.index)+rText+text.slice(matches.index+fullMatch.length);
+        modified = true;
+    }
+    return {modified:modified, text:mtext};
+  }
 
 function handleText(textNode) {
     let text = textNode.nodeValue;
-    let replacementHTML;
-    replacementHTML = convertSimpleUnits(text);
-    if(replacementHTML != null) {
+    const unitObj = convertUnits(text);
+    const tempObj = convertTemperature(unitObj.text);
+
+    if(unitObj.modified == true || tempObj.modified == true) {
         var replacementNode = document.createElement('span');
-        replacementNode.innerHTML = replacementHTML;
+        replacementNode.innerHTML = tempObj.text;
         textNode.parentNode.insertBefore(replacementNode, textNode);
         textNode.parentNode.removeChild(textNode);
     }
+    
 }
 
 function walk(node) {
